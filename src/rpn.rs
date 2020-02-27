@@ -1,7 +1,6 @@
 use crate::{
     interpreter::Context,
-    token::{Ident, Operator, OperatorAssociativity, Token, tokenize},
-    function::Function,
+    token::{Operator, OperatorAssociativity, Token},
 };
 
 pub fn rpn_gen(tokens: &Vec<Token>, ctx: &Context) -> Result<Vec<Token>, String> {
@@ -124,6 +123,10 @@ pub fn rpn_eval(tokens_rpn: &Vec<Token>, ctx: &Context) -> Result<f64, String> {
 
 #[test]
 fn test_rpn_eval() {
+    use crate::{
+        function::Function,
+        token::{ tokenize, Ident },
+    };
     // 10 + 2 * 3 = 60
     let tokens = vec![
         Token::new("10".to_owned()).unwrap(),

@@ -1,7 +1,7 @@
 use {
     crate::{
         interpreter::{evaluate, Context},
-        token::{tokenize, Ident, Keyword, Operator, Token},
+        token::{Ident, Keyword, Operator, Token},
     },
     std::fmt::{Debug, Display, Formatter, Result as fmt_Result},
 };
@@ -103,6 +103,7 @@ impl Display for Function {
 
 #[test]
 fn test_function_new() {
+    use crate::token::tokenize;
     assert!(Function::new(&tokenize("function = 10 + 2".to_owned()).unwrap()).is_err());
     assert!(Function::new(&tokenize("function foo a b = ".to_owned()).unwrap()).is_err());
     assert!(Function::new(&tokenize("function foo 10 + b = 0.0 / 2".to_owned()).unwrap()).is_err());
