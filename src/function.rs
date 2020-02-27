@@ -1,31 +1,22 @@
-
 use {
+    crate::{
+        interpreter::{evaluate, Context},
+        token::{tokenize, Ident, Keyword, Operator, Token},
+    },
     std::{
         collections::HashMap,
-        fmt::{ Display, Debug, Formatter, Result as fmt_Result },
+        fmt::{Debug, Display, Formatter, Result as fmt_Result},
         ops::Index,
     },
-    crate::{
-        token::{
-            Ident,
-            Token,
-            Keyword,
-            Operator,
-            tokenize,
-        },
-        interpreter::{
-            Context,
-            evaluate,
-        },
-    }
 };
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Function {
-    ident: Ident,
-    args: Vec<Ident>,
-    code: Vec<Token>,
-} impl Function {
+    pub ident: Ident,
+    pub args: Vec<Ident>,
+    pub code: Vec<Token>,
+}
+impl Function {
     pub fn new(tokens: &Vec<Token>) -> Result<Self, String> {
         if let Some(Token::Keyword(Keyword::Function)) = tokens.first() {
             if let Some(Token::Identifier(ident)) = tokens.get(1) {
@@ -37,23 +28,33 @@ pub struct Function {
                     match tok {
                         Token::Operator(Operator::Assign) => break,
                         Token::Identifier(ident) => args.push(ident.clone()),
-                        _ => return Err(format!("Expected identifier in declaration of {}, got: {:?}", ident, tok))
+                        _ => {
+                            return Err(format!(
+                                "Expected identifier in declaration of {}, got: {:?}",
+                                ident, tok
+                            ))
+                        }
                     }
                 }
 
-                let code = tokens.get(idx..).unwrap().iter().cloned().collect::<Vec<Token>>();
-                
+                let code = tokens
+                    .get(idx..)
+                    .unwrap()
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<Token>>();
+
                 if code.is_empty() {
-                    return Err("Function declaration with no body".to_owned())
+                    return Err("Function declaration with no body".to_owned());
                 }
 
                 return Ok(Function {
                     ident: ident.clone(),
                     args,
-                    code
-                })
+                    code,
+                });
             } else {
-                return Err("`function` keyword not followed by an identifier".to_owned())
+                return Err("`function` keyword not followed by an identifier".to_owned());
             }
         } else {
             unreachable!()
@@ -76,29 +77,42 @@ pub struct Function {
                     } else if let Some(val) = ctx.variables.get(&ident) {
                         code.push(Token::Value(*val));
                     } else {
-                        return Err(format!("Unknown identifier {}", ident))
+                        return Err(format!("Unknown identifier {}", ident));
                     }
-                },
-                _ => code.push(tok.clone())
+                }
+                _ => code.push(tok.clone()),
             }
         }
 
-        evaluate(&code)
+        evaluate(&code, ctx)
     }
 
-} impl Display for Function {
+    pub fn argc(&self) -> usize {
+        self.args.len()
+    }
+}
+impl Display for Function {
     fn fmt(&self, f: &mut Formatter) -> fmt_Result {
-        write!(f, "function {} {} = {}",
+        write!(
+            f,
+            "function {} {} = {}",
             self.ident,
-            self.args.iter().map(|i| i.internal_cloned()).collect::<Vec<String>>().join(" "),
-            self.code.iter().map(|tok| format!("{}", tok)).collect::<Vec<String>>().join(" ")
+            self.args
+                .iter()
+                .map(|i| i.internal_cloned())
+                .collect::<Vec<String>>()
+                .join(" "),
+            self.code
+                .iter()
+                .map(|tok| format!("{}", tok))
+                .collect::<Vec<String>>()
+                .join(" ")
         )
     }
 }
 
 #[test]
 fn test_function_new() {
-
     assert!(Function::new(&tokenize("function = 10 + 2".to_owned()).unwrap()).is_err());
     assert!(Function::new(&tokenize("function foo a b = ".to_owned()).unwrap()).is_err());
     assert!(Function::new(&tokenize("function foo 10 + b = 0.0 / 2".to_owned()).unwrap()).is_err());
@@ -115,8 +129,11 @@ fn test_function_new() {
             Token::new("a".to_owned()).unwrap(),
             Token::new("+".to_owned()).unwrap(),
             Token::new("b".to_owned()).unwrap(),
-        ]
+        ],
     };
 
-    assert_eq!(Function::new(&tokenize("function foo a b = 2 * a + b".to_owned()).unwrap()).unwrap(), expected);
+    assert_eq!(
+        Function::new(&tokenize("function foo a b = 2 * a + b".to_owned()).unwrap()).unwrap(),
+        expected
+    );
 }
