@@ -1,7 +1,7 @@
 use {
     crate::{
         interpreter::{evaluate, Context},
-        token::{Ident, Keyword, Operator, Token},
+        token::{tokenize, Ident, Keyword, Operator, Token},
     },
     std::fmt::{Debug, Display, Formatter, Result as fmt_Result},
 };
