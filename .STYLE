@@ -1,0 +1,52 @@
+####################################
+## WORDS FOLLOWED AND PRECEDED
+## BY `##` ARE LABELS
+## 
+## FORMAT:
+##   <(*?)data_type:in_code_label>  Optional * means n items 
+##   <<LABEL>>
+##   { <foo> | <bar> }              Either foo or bar
+##   
+## 
+## DATA TYPES:
+##   tok   Variant of the `Token` enum
+##   kw    Variant of the `Keyword` enum 
+##   ident String stored in the Token::Ident variant
+##   const straight numeric value
+## 
+#################################### 
+
+
+
+## EXPRESSION ##
+<*tok:code>
+
+## FUNCTION_DECL ##
+<kw:Function> <ident:fnident> <*ident:argidents> <op:Assign> <<EXPRESSION:code>>
+// Add Function {
+//      ident: fnident, 
+//      args: *argidents,
+//      code,
+// } to context.functions
+
+## FUNCTION_CALL ##
+<ident:fnident> <*ident:argidents>
+// if let Some(func) = context.functions.get(fnident) {
+//     func.call(argidents)
+// } else {
+//     raise undefined function error
+// }    
+
+## VARIABLE_DECL ##
+<kw:Var> <ident:varident> <op:Assign> { <<EXPRESSION:expr>> | <const:val> }
+// context.variables.insert(varident, { evaluate(expr) | val })
+
+## VARIABLE_CALL ##
+<ident:varident>
+// if let Some(val) = context.variables.get(varident) {
+//     val
+// } else {
+//     raise undefined var error
+// }
+
+// No function calls in function bodies
