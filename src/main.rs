@@ -5,5 +5,6 @@ pub mod token;
 pub mod tree;
 
 fn main() {
-    println!("Hello, world!");
+    let mut interpreter = interpreter::Interpreter::new();
+    interpreter.begin().unwrap();
 }

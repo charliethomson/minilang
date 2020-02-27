@@ -2,7 +2,7 @@ use {
     crate::{
         function::Function,
         rpn::{rpn_eval, rpn_gen},
-        token::{tokenize, Ident, Token},
+        token::{tokenize, Ident, Keyword, Operator, Token},
     },
     std::{
         collections::HashMap,
@@ -14,20 +14,51 @@ pub struct Interpreter {
     context: Context,
 }
 impl Interpreter {
-    pub fn begin() -> Result<(), usize> {
-        // let mut stdin = stdin();
+    pub fn new() -> Self {
+        Interpreter {
+            context: Context::new(),
+        }
+    }
+    pub fn begin(mut self) -> Result<(), usize> {
+        let mut stdin = stdin();
 
-        // let mut userin = String::new();
+        loop {
+            print!(">> ");
+            stdout().flush().unwrap();
 
-        // loop {
-        //     println!(">>");
-        //     stdout().flush().unwrap();
+            let mut userin = String::new();
 
-        //     stdin.read_to_string(&mut userin).unwrap();
+            stdin.read_line(&mut userin).unwrap();
 
-        //     let tokens = tokenize(userin.clone(), &self.ctx)
+            let tokens = match tokenize(userin.clone()) {
+                Ok(toks) => toks,
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    continue;
+                }
+            };
 
-        // }
+            if let Some(Token::Keyword(kw)) = tokens.get(0) {
+                match kw {
+                    Keyword::Function => {
+                        match self.context.new_func(&tokens) {
+                            Ok(func) => println!("{}", func),
+                            Err(e) => eprintln!("Error: {}", e),
+                        };
+                        continue;
+                    }
+                    Keyword::Variable => match self.context.new_var(&tokens) {
+                        Ok((ident, val)) => println!("{} = {}", ident, val),
+                        Err(e) => eprintln!("Error: {}", e),
+                    },
+                }
+            } else {
+                match evaluate(&tokens, &self.context) {
+                    Ok(val) => println!("{}", val),
+                    Err(e) => eprintln!("Error: {:?}", e),
+                };
+            }
+        }
 
         Ok(())
     }
@@ -45,112 +76,215 @@ pub fn evaluate(tokens: &Vec<Token>, ctx: &Context) -> Result<f64, String> {
 pub struct Context {
     pub functions: HashMap<Ident, Function>,
     pub variables: HashMap<Ident, f64>,
-    builtins: Vec<String>,
 }
 impl Context {
     pub fn new() -> Self {
+        let mut functions = HashMap::new();
+        functions.insert(
+            Ident::new("sin".to_owned()).unwrap(),
+            Function {
+                ident: Ident::new("sin".to_owned()).unwrap(),
+                args: vec![Ident::new("a".to_owned()).unwrap()],
+                code: vec![Token::Identifier(Ident::new("a".to_owned()).unwrap())],
+            },
+        );
+        functions.insert(
+            Ident::new("cos".to_owned()).unwrap(),
+            Function {
+                ident: Ident::new("cos".to_owned()).unwrap(),
+                args: vec![Ident::new("a".to_owned()).unwrap()],
+                code: vec![Token::Identifier(Ident::new("a".to_owned()).unwrap())],
+            },
+        );
+        functions.insert(
+            Ident::new("tan".to_owned()).unwrap(),
+            Function {
+                ident: Ident::new("tan".to_owned()).unwrap(),
+                args: vec![Ident::new("a".to_owned()).unwrap()],
+                code: vec![Token::Identifier(Ident::new("a".to_owned()).unwrap())],
+            },
+        );
+        functions.insert(
+            Ident::new("asin".to_owned()).unwrap(),
+            Function {
+                ident: Ident::new("asin".to_owned()).unwrap(),
+                args: vec![Ident::new("a".to_owned()).unwrap()],
+                code: vec![Token::Identifier(Ident::new("a".to_owned()).unwrap())],
+            },
+        );
+        functions.insert(
+            Ident::new("acos".to_owned()).unwrap(),
+            Function {
+                ident: Ident::new("acos".to_owned()).unwrap(),
+                args: vec![Ident::new("a".to_owned()).unwrap()],
+                code: vec![Token::Identifier(Ident::new("a".to_owned()).unwrap())],
+            },
+        );
+        functions.insert(
+            Ident::new("atan".to_owned()).unwrap(),
+            Function {
+                ident: Ident::new("atan".to_owned()).unwrap(),
+                args: vec![Ident::new("a".to_owned()).unwrap()],
+                code: vec![Token::Identifier(Ident::new("a".to_owned()).unwrap())],
+            },
+        );
+        functions.insert(
+            Ident::new("min".to_owned()).unwrap(),
+            Function {
+                ident: Ident::new("min".to_owned()).unwrap(),
+                args: vec![
+                    Ident::new("a".to_owned()).unwrap(),
+                    Ident::new("b".to_owned()).unwrap(),
+                ],
+                code: vec![Token::Identifier(Ident::new("a".to_owned()).unwrap())],
+            },
+        );
+        functions.insert(
+            Ident::new("max".to_owned()).unwrap(),
+            Function {
+                ident: Ident::new("max".to_owned()).unwrap(),
+                args: vec![
+                    Ident::new("a".to_owned()).unwrap(),
+                    Ident::new("b".to_owned()).unwrap(),
+                ],
+                code: vec![Token::Identifier(Ident::new("a".to_owned()).unwrap())],
+            },
+        );
+
         Context {
-            functions: HashMap::new(),
+            functions,
             variables: HashMap::new(),
-            builtins: vec![
-                "sin".to_owned(),
-                "cos".to_owned(),
-                "tan".to_owned(),
-                "asin".to_owned(),
-                "acos".to_owned(),
-                "atan".to_owned(),
-                "min".to_owned(),
-                "max".to_owned(),
-            ],
         }
+    }
+
+    pub fn new_var(&mut self, tokens: &Vec<Token>) -> Result<(Ident, f64), String> {
+        if let Some(Token::Keyword(Keyword::Variable)) = tokens.first() {
+            if let Some(Token::Identifier(ident)) = tokens.get(1) {
+                if tokens.get(2) != Some(&Token::Operator(Operator::Assign)) {
+                    return Err(format!(
+                        "Unexpected token before assignment operator in varible assignment: {:?}",
+                        tokens.get(2)
+                    ));
+                } else {
+                    let code = tokens.clone().drain(3..).collect::<Vec<Token>>();
+                    let val = evaluate(&code, &self)?;
+                    self.variables.insert(ident.clone(), val);
+                    Ok((ident.clone(), val))
+                }
+            } else {
+                return Err("`var` keyword not followed by an identifier".to_owned());
+            }
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn new_func(&mut self, tokens: &Vec<Token>) -> Result<Function, String> {
+        let func = Function::new(tokens)?;
+        self.functions.insert(func.ident.clone(), func.clone());
+        Ok(func)
     }
 
     pub fn call_function(&self, ident: Ident, args: &Vec<Token>) -> Result<f64, String> {
         if let Some(func) = self.functions.get(&ident) {
-            func.call(args, &self)
-        } else if self.builtins.contains(&ident.internal_cloned()) {
             match ident.internal_cloned().as_str() {
-                "sin" => match args.get(0) {
-                    Some(a) => match a {
-                        Token::Value(va) => Ok(va.sin()),
-                        _ => Err(format!(
-                            "Error calling `sin`: expected value, recieved {}",
-                            a
-                        )),
-                    },
-                    _ => Err(format!("Expected 1 argument, recieved 0")),
-                },
-                "cos" => match args.get(0) {
-                    Some(a) => match a {
-                        Token::Value(va) => Ok(va.cos()),
-                        _ => Err(format!(
-                            "Error calling `cos`: expected value, recieved {}",
-                            a
-                        )),
-                    },
-                    _ => Err(format!("Expected 1 argument, recieved 0")),
-                },
-                "tan" => match args.get(0) {
-                    Some(a) => match a {
-                        Token::Value(va) => Ok(va.tan()),
-                        _ => Err(format!(
-                            "Error calling `tan`: expected value, recieved {}",
-                            a
-                        )),
-                    },
-                    _ => Err(format!("Expected 1 argument, recieved 0")),
-                },
-                "asin" => match args.get(0) {
-                    Some(a) => match a {
-                        Token::Value(va) => Ok(va.asin()),
-                        _ => Err(format!(
-                            "Error calling `asin`: expected value, recieved {}",
-                            a
-                        )),
-                    },
-                    _ => Err(format!("Expected 1 argument, recieved 0")),
-                },
-                "acos" => match args.get(0) {
-                    Some(a) => match a {
-                        Token::Value(va) => Ok(va.acos()),
-                        _ => Err(format!(
-                            "Error calling `acos`: expected value, recieved {}",
-                            a
-                        )),
-                    },
-                    _ => Err(format!("Expected 1 argument, recieved 0")),
-                },
-                "atan" => match args.get(0) {
-                    Some(a) => match a {
-                        Token::Value(va) => Ok(va.atan()),
-                        _ => Err(format!(
-                            "Error calling `atan`: expected value, recieved {}",
-                            a
-                        )),
-                    },
-                    _ => Err(format!("Expected 1 argument, recieved 0")),
-                },
-                "min" => match (args.get(0), args.get(1)) {
-                    (Some(a), Some(b)) => match (a, b) {
-                        (Token::Value(va), Token::Value(vb)) => Ok(va.min(*vb)),
-                        _ => Err(format!(
-                            "Error calling `min`: expected values, got {}, {}",
-                            a, b
-                        )),
-                    },
-                    _ => Err(format!("Expected 2 arguments, recieved {}", args.len())),
-                },
-                "max" => match (args.get(0), args.get(1)) {
-                    (Some(a), Some(b)) => match (a, b) {
-                        (Token::Value(va), Token::Value(vb)) => Ok(va.max(*vb)),
-                        _ => Err(format!(
-                            "Error calling `max`: expected values, got {}, {}",
-                            a, b
-                        )),
-                    },
-                    _ => Err(format!("Expected 2 arguments, recieved {}", args.len())),
-                },
-                _ => unreachable!(),
+                "sin" => {
+                    if args.len() != 1 {
+                        Err(format!("Expected 1 argument, got {}", args.len()))
+                    } else {
+                        let a = args.get(0).unwrap();
+                        if let Token::Value(v) = a {
+                            Ok(v.sin())
+                        } else {
+                            Err(format!("Expected Value, got {}", a))
+                        }
+                    }
+                }
+                "cos" => {
+                    if args.len() != 1 {
+                        Err(format!("Expected 1 argument, got {}", args.len()))
+                    } else {
+                        let a = args.get(0).unwrap();
+                        if let Token::Value(v) = a {
+                            Ok(v.sin())
+                        } else {
+                            Err(format!("Expected Value, got {}", a))
+                        }
+                    }
+                }
+                "tan" => {
+                    if args.len() != 1 {
+                        Err(format!("Expected 1 argument, got {}", args.len()))
+                    } else {
+                        let a = args.get(0).unwrap();
+                        if let Token::Value(v) = a {
+                            Ok(v.sin())
+                        } else {
+                            Err(format!("Expected Value, got {}", a))
+                        }
+                    }
+                }
+                "asin" => {
+                    if args.len() != 1 {
+                        Err(format!("Expected 1 argument, got {}", args.len()))
+                    } else {
+                        let a = args.get(0).unwrap();
+                        if let Token::Value(v) = a {
+                            Ok(v.sin())
+                        } else {
+                            Err(format!("Expected Value, got {}", a))
+                        }
+                    }
+                }
+                "acos" => {
+                    if args.len() != 1 {
+                        Err(format!("Expected 1 argument, got {}", args.len()))
+                    } else {
+                        let a = args.get(0).unwrap();
+                        if let Token::Value(v) = a {
+                            Ok(v.sin())
+                        } else {
+                            Err(format!("Expected Value, got {}", a))
+                        }
+                    }
+                }
+                "atan" => {
+                    if args.len() != 1 {
+                        Err(format!("Expected 1 argument, got {}", args.len()))
+                    } else {
+                        let a = args.get(0).unwrap();
+                        if let Token::Value(v) = a {
+                            Ok(v.sin())
+                        } else {
+                            Err(format!("Expected Value, got {}", a))
+                        }
+                    }
+                }
+                "min" => {
+                    if args.len() != 2 {
+                        Err(format!("Expected 2 arguments, got {}", args.len()))
+                    } else {
+                        let (a, b) = (args.get(0).unwrap(), args.get(1).unwrap());
+                        if let (Token::Value(va), Token::Value(vb)) = (a, b) {
+                            Ok(va.min(*vb))
+                        } else {
+                            Err(format!("Expected (Value, Value), got ({}, {})", a, b))
+                        }
+                    }
+                }
+                "max" => {
+                    if args.len() != 2 {
+                        Err(format!("Expected 2 arguments, got {}", args.len()))
+                    } else {
+                        let (a, b) = (args.get(0).unwrap(), args.get(1).unwrap());
+                        if let (Token::Value(va), Token::Value(vb)) = (a, b) {
+                            Ok(va.max(*vb))
+                        } else {
+                            Err(format!("Expected (Value, Value), got ({}, {})", a, b))
+                        }
+                    }
+                }
+                _ => func.call(args, &self),
             }
         } else {
             Err(format!("Unknown function {}", ident))

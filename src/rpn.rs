@@ -108,7 +108,7 @@ pub fn rpn_eval(tokens_rpn: &Vec<Token>, ctx: &Context) -> Result<f64, String> {
                         .drain(stack.len() - argc..)
                         .map(|v| Token::Value(v))
                         .collect::<Vec<Token>>();
-                    stack.push(func.call(&args, ctx)?)
+                    stack.push(ctx.call_function(func.ident.clone(), &args)?)
                 }
             }
             _ => eprintln!("{:?}", tok),
