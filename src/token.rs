@@ -52,7 +52,7 @@ impl Operator {
         }
     }
 
-    pub fn operate(&self, a: f64, b: f64) -> Result<f64, String> {
+    pub fn operate(self, a: f64, b: f64) -> Result<f64, String> {
         match self {
             Self::Add => Ok(a + b),
             Self::Sub => Ok(a - b),
@@ -64,14 +64,14 @@ impl Operator {
         }
     }
 
-    pub fn associativity(&self) -> OperatorAssociativity {
+    pub fn associativity(self) -> OperatorAssociativity {
         match self {
             Self::Pow => OperatorAssociativity::Right,
             _ => OperatorAssociativity::Left,
         }
     }
 
-    pub fn precedence(&self) -> u8 {
+    pub fn precedence(self) -> u8 {
         match self {
             Self::USub => 7,
             Self::Pow => 6,
@@ -153,7 +153,7 @@ impl Display for Token {
                 Self::Value(v) => format!("{}", v),
                 Self::Operator(op) => format!("{}", op),
                 Self::Function(func) => format!("{}", func),
-                Self::Identifier(ident) => format!("{}", ident.internal_cloned()),
+                Self::Identifier(ident) => ident.internal_cloned(),
                 Self::Keyword(kw) => match kw {
                     Keyword::Function => "function".to_owned(),
                     Keyword::Variable => "var".to_owned(),

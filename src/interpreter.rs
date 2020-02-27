@@ -6,7 +6,7 @@ use {
     },
     std::{
         collections::HashMap,
-        io::{stdin, stdout, Read, Stdin, Write},
+        io::{stdin, stdout, Write},
     },
 };
 
@@ -20,7 +20,7 @@ impl Interpreter {
         }
     }
     pub fn begin(mut self) -> Result<(), usize> {
-        let mut stdin = stdin();
+        let stdin = stdin();
 
         loop {
             print!(">> ");
@@ -59,12 +59,6 @@ impl Interpreter {
                 };
             }
         }
-
-        Ok(())
-    }
-
-    pub fn eval_line(&self, s: String) -> Result<f64, String> {
-        Ok(0.0)
     }
 }
 
@@ -161,10 +155,10 @@ impl Context {
         if let Some(Token::Keyword(Keyword::Variable)) = tokens.first() {
             if let Some(Token::Identifier(ident)) = tokens.get(1) {
                 if tokens.get(2) != Some(&Token::Operator(Operator::Assign)) {
-                    return Err(format!(
+                    Err(format!(
                         "Unexpected token before assignment operator in varible assignment: {:?}",
                         tokens.get(2)
-                    ));
+                    ))
                 } else {
                     let code = tokens.clone().drain(3..).collect::<Vec<Token>>();
                     let val = evaluate(&code, &self)?;
@@ -172,7 +166,7 @@ impl Context {
                     Ok((ident.clone(), val))
                 }
             } else {
-                return Err("`var` keyword not followed by an identifier".to_owned());
+                Err("`var` keyword not followed by an identifier".to_owned())
             }
         } else {
             unreachable!()

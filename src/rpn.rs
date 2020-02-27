@@ -1,7 +1,6 @@
 use crate::{
-    function::Function,
     interpreter::Context,
-    token::{tokenize, Ident, Operator, OperatorAssociativity, Token},
+    token::{Operator, OperatorAssociativity, Token},
 };
 
 pub fn rpn_gen(tokens: &Vec<Token>, ctx: &Context) -> Result<Vec<Token>, String> {
@@ -76,7 +75,7 @@ pub fn rpn_gen(tokens: &Vec<Token>, ctx: &Context) -> Result<Vec<Token>, String>
 
 pub fn rpn_eval(tokens_rpn: &Vec<Token>, ctx: &Context) -> Result<f64, String> {
     let mut stack = Vec::new();
-    let mut tokens = tokens_rpn.clone();
+    let tokens = tokens_rpn.clone();
     for tok in tokens {
         match tok {
             Token::Value(v) => stack.push(v),
@@ -106,7 +105,7 @@ pub fn rpn_eval(tokens_rpn: &Vec<Token>, ctx: &Context) -> Result<f64, String> {
                 } else {
                     let args = stack
                         .drain(stack.len() - argc..)
-                        .map(|v| Token::Value(v))
+                        .map(Token::Value)
                         .collect::<Vec<Token>>();
                     stack.push(ctx.call_function(func.ident.clone(), &args)?)
                 }

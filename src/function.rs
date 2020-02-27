@@ -1,13 +1,9 @@
 use {
     crate::{
         interpreter::{evaluate, Context},
-        token::{tokenize, Ident, Keyword, Operator, Token},
+        token::{Ident, Keyword, Operator, Token},
     },
-    std::{
-        collections::HashMap,
-        fmt::{Debug, Display, Formatter, Result as fmt_Result},
-        ops::Index,
-    },
+    std::fmt::{Debug, Display, Formatter, Result as fmt_Result},
 };
 
 #[derive(PartialEq, Clone, Debug)]
@@ -20,7 +16,6 @@ impl Function {
     pub fn new(tokens: &Vec<Token>) -> Result<Self, String> {
         if let Some(Token::Keyword(Keyword::Function)) = tokens.first() {
             if let Some(Token::Identifier(ident)) = tokens.get(1) {
-                let mut found_assn = false;
                 let mut args = Vec::new();
                 let mut idx = 2;
                 while let Some(tok) = tokens.get(idx) {
@@ -37,24 +32,19 @@ impl Function {
                     }
                 }
 
-                let code = tokens
-                    .get(idx..)
-                    .unwrap()
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<Token>>();
+                let code = tokens.get(idx..).unwrap().to_vec();
 
                 if code.is_empty() {
-                    return Err("Function declaration with no body".to_owned());
+                    Err("Function declaration with no body".to_owned())
+                } else {
+                    Ok(Function {
+                        ident: ident.clone(),
+                        args,
+                        code,
+                    })
                 }
-
-                return Ok(Function {
-                    ident: ident.clone(),
-                    args,
-                    code,
-                });
             } else {
-                return Err("`function` keyword not followed by an identifier".to_owned());
+                Err("`function` keyword not followed by an identifier".to_owned())
             }
         } else {
             unreachable!()
