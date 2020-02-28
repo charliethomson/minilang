@@ -3,8 +3,28 @@ use {
         interpreter::{evaluate, Context},
         token::{Ident, Keyword, Operator, Token},
     },
-    std::fmt::{Debug, Display, Formatter, Result as fmt_Result},
+    std::{
+        collections::HashMap,
+        fmt::{Debug, Display, Formatter, Result as fmt_Result},
+    },
 };
+
+fn has_dups(idents: &Vec<Ident>) -> Option<Vec<Ident>> {
+    let mut map = HashMap::new();
+    let mut dups = Vec::new();
+
+    for (idx, ident) in idents.iter().enumerate() {
+        if let Some(_) = map.insert(ident, idx) {
+            dups.push(ident.clone());
+        }
+    }
+
+    if dups.is_empty() {
+        None
+    } else {
+        Some(dups)
+    }
+}
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Function {
@@ -37,11 +57,20 @@ impl Function {
                 if code.is_empty() {
                     Err("Function declaration with no body".to_owned())
                 } else {
-                    Ok(Function {
-                        ident: ident.clone(),
-                        args,
-                        code,
-                    })
+                    if let Some(dups) = has_dups(&args) {
+                        Err(format!("Encountered multiple declarations of ({}) in argslist, dont do that :)",
+                                    dups.iter()
+                                        .map(|ident| ident.internal_cloned())
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                        ))
+                    } else {
+                        Ok(Function {
+                            ident: ident.clone(),
+                            args,
+                            code,
+                        })
+                    }
                 }
             } else {
                 Err("`function` keyword not followed by an identifier".to_owned())

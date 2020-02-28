@@ -47,8 +47,8 @@ pub fn rpn_gen(tokens: &Vec<Token>, ctx: &Context) -> Result<Vec<Token>, String>
                             if match top {
                                 Token::Operator(Operator::LParen) => {
                                     stack.push(top);
-                                    break
-                                },
+                                    break;
+                                }
                                 Token::Operator(op2) => match op.associativity() {
                                     OperatorAssociativity::Left => {
                                         op2.precedence() >= op.precedence()
@@ -115,6 +115,7 @@ pub fn rpn_eval(tokens_rpn: &Vec<Token>, ctx: &Context) -> Result<f64, String> {
                         .drain(stack.len() - argc..)
                         .map(Token::Value)
                         .collect::<Vec<Token>>();
+
                     stack.push(ctx.call_function(func.ident.clone(), &args)?)
                 }
             }
@@ -133,7 +134,7 @@ pub fn rpn_eval(tokens_rpn: &Vec<Token>, ctx: &Context) -> Result<f64, String> {
 fn test_rpn_eval() {
     use crate::{
         function::Function,
-        token::{ tokenize, Ident },
+        token::{tokenize, Ident},
     };
     // 10 + 2 * 3 = 60
     let tokens = vec![
