@@ -58,7 +58,7 @@ impl Operator {
             Self::Sub => Ok(a - b),
             Self::Mul => Ok(a * b),
             Self::Div => Ok(b / a),
-            Self::Pow => Ok(a.powf(b)),
+            Self::Pow => Ok(b.powf(a)),
             Self::USub => Ok(-a),
             _ => Err(format!("operate should not be called on {}", self)),
         }

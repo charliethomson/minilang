@@ -26,15 +26,17 @@ pub fn rpn_gen(tokens: &Vec<Token>, ctx: &Context) -> Result<Vec<Token>, String>
                         stack.push(tok);
                     }
                     Operator::RParen => {
+                        let mut got = false;
                         while let Some(top) = stack.pop() {
                             if top == Token::Operator(Operator::LParen) {
+                                got = true;
                                 break;
                             } else {
                                 output.push(top);
                             }
                         }
                         // check if we got a paren
-                        if stack.is_empty() {
+                        if !got {
                             return Err("Mismatched parentheses".to_owned());
                         }
                     }
@@ -44,10 +46,13 @@ pub fn rpn_gen(tokens: &Vec<Token>, ctx: &Context) -> Result<Vec<Token>, String>
                     _ => {
                         while let Some(top) = stack.pop() {
                             if match top {
-                                Token::Operator(Operator::LParen) => break,
+                                Token::Operator(Operator::LParen) => {
+                                    stack.push(top);
+                                    break
+                                },
                                 Token::Operator(op2) => match op.associativity() {
                                     OperatorAssociativity::Left => {
-                                        op2.precedence() == op.precedence()
+                                        op2.precedence() >= op.precedence()
                                     }
                                     OperatorAssociativity::Right => {
                                         op2.precedence() > op.precedence()
@@ -57,6 +62,9 @@ pub fn rpn_gen(tokens: &Vec<Token>, ctx: &Context) -> Result<Vec<Token>, String>
                                 _ => false,
                             } {
                                 output.push(top);
+                            } else {
+                                stack.push(top);
+                                break;
                             }
                         }
                         stack.push(tok);
